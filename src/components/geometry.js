@@ -31,7 +31,11 @@ module.exports.Component = registerComponent('geometry', {
 
     // Dispose old geometry if we created one.
     if (this.geometry) {
-      system.unuseGeometry(previousData);
+      if (previousData.skipCache) {
+        this.geometry.dispose();
+      } else {
+        system.unuseGeometry(previousData);
+      }
       this.geometry = null;
     }
 
@@ -62,7 +66,11 @@ module.exports.Component = registerComponent('geometry', {
    * Unset the geometry on the mesh
    */
   remove: function () {
-    this.system.unuseGeometry(this.data);
+    if (this.data.skipCache) {
+      this.geometry.dispose();
+    } else {
+      this.system.unuseGeometry(this.data);
+    }
     this.el.getObject3D('mesh').geometry = dummyGeometry;
     this.geometry = null;
   },
