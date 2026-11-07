@@ -57,6 +57,36 @@ suite('geometry', function () {
       el.setAttribute('geometry', 'primitive: sphere');
       assert.ok(disposeSpy.called);
     });
+
+    test('disposes uncached geometry on update', function () {
+      el.setAttribute('geometry', 'skipCache', true);
+      var geometry = el.getObject3D('mesh').geometry;
+      var disposeSpy = this.sinon.spy(geometry, 'dispose');
+      el.setAttribute('geometry', 'width', 5);
+      assert.ok(disposeSpy.calledOnce);
+      assert.notEqual(el.getObject3D('mesh').geometry, geometry);
+    });
+
+    test('disposes uncached geometry when enabling caching', function () {
+      el.setAttribute('geometry', 'skipCache', true);
+      var geometry = el.getObject3D('mesh').geometry;
+      var disposeSpy = this.sinon.spy(geometry, 'dispose');
+      el.setAttribute('geometry', 'skipCache', false);
+      assert.ok(disposeSpy.calledOnce);
+      assert.notEqual(el.getObject3D('mesh').geometry, geometry);
+    });
+
+    test('preserves shared cached geometry when disabling caching', function () {
+      var system = el.components.geometry.system;
+      var data = Object.assign({}, el.components.geometry.data);
+      var geometry = system.getOrCreateGeometry(data);
+      var disposeSpy = this.sinon.spy(geometry, 'dispose');
+      el.setAttribute('geometry', 'skipCache', true);
+      assert.notOk(disposeSpy.called);
+      assert.equal(system.cacheCount[system.hash(data)], 1);
+      system.unuseGeometry(data);
+      assert.ok(disposeSpy.calledOnce);
+    });
   });
 
   suite('remove', function () {
@@ -71,6 +101,15 @@ suite('geometry', function () {
       var disposeSpy = this.sinon.spy(geometry, 'dispose');
       el.removeAttribute('geometry');
       assert.ok(disposeSpy.called);
+    });
+
+    test('disposes uncached geometry on removal', function () {
+      el.setAttribute('geometry', 'skipCache', true);
+      var geometry = el.getObject3D('mesh').geometry;
+      var disposeSpy = this.sinon.spy(geometry, 'dispose');
+      el.removeAttribute('geometry');
+      assert.ok(disposeSpy.calledOnce);
+      assert.equal(el.getObject3D('mesh').geometry.type, 'BufferGeometry');
     });
   });
 });
