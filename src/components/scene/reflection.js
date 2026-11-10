@@ -41,18 +41,21 @@ module.exports.Component = register('reflection', {
       this.el.setAttribute('webxr', webxrData);
     }
 
-    this.el.addEventListener('enter-vr', function () {
+    this.onEnterVR = function () {
       if (!self.el.is('ar-mode')) { return; }
       var renderer = self.el.renderer;
       var session = renderer.xr.getSession();
       if (session.requestLightProbe) {
         self.startLightProbe();
       }
-    });
+    };
 
-    this.el.addEventListener('exit-vr', function () {
+    this.onExitVR = function () {
       self.stopLightProbe();
-    });
+    };
+
+    this.el.addEventListener('enter-vr', this.onEnterVR);
+    this.el.addEventListener('exit-vr', this.onExitVR);
 
     this.el.object3D.environment = this.cubeRenderTarget.texture;
   },
@@ -153,6 +156,8 @@ module.exports.Component = register('reflection', {
   },
 
   remove: function () {
+    this.el.removeEventListener('enter-vr', this.onEnterVR);
+    this.el.removeEventListener('exit-vr', this.onExitVR);
     this.el.object3D.environment = null;
     if (this.probeLight) {
       this.el.removeChild(this.probeLight);
