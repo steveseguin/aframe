@@ -36,6 +36,8 @@ module.exports.Component = registerComponent('link', {
     var backgroundColor;
     var strokeColor;
 
+    if (data.on !== oldData.on) { this.updateEventListener(); }
+
     if (!data.visualAspectEnabled) { return; }
 
     this.initVisualAspect();
@@ -44,8 +46,6 @@ module.exports.Component = registerComponent('link', {
     strokeColor = data.highlighted ? data.highlightedColor : data.borderColor;
     el.setAttribute('material', 'backgroundColor', backgroundColor);
     el.setAttribute('material', 'strokeColor', strokeColor);
-
-    if (data.on !== oldData.on) { this.updateEventListener(); }
 
     if (oldData.peekMode !== undefined &&
         data.peekMode !== oldData.peekMode) { this.updatePeekMode(); }
@@ -83,15 +83,16 @@ module.exports.Component = registerComponent('link', {
 
   updateEventListener: function () {
     var el = this.el;
-    if (!el.isPlaying) { return; }
     this.removeEventListener();
-    el.addEventListener(this.data.on, this.navigate);
+    if (!el.isPlaying || !this.data.on) { return; }
+    this.eventName = this.data.on;
+    el.addEventListener(this.eventName, this.navigate);
   },
 
   removeEventListener: function () {
-    var on = this.data.on;
-    if (!on) { return; }
-    this.el.removeEventListener(on, this.navigate);
+    if (!this.eventName) { return; }
+    this.el.removeEventListener(this.eventName, this.navigate);
+    this.eventName = undefined;
   },
 
   initVisualAspect: function () {
