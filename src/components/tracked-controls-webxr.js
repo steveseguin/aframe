@@ -12,6 +12,7 @@ var EVENTS = {
 
 module.exports.Component = registerComponent('tracked-controls-webxr', {
   schema: {
+    autoHide: {default: true},
     id: {type: 'string', default: ''},
     hand: {type: 'string', default: ''},
     handTrackingEnabled: {default: false},

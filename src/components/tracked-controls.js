@@ -31,6 +31,7 @@ module.exports.Component = registerComponent('tracked-controls', {
     var el = this.el;
     if (el.sceneEl.hasWebXR) {
       el.setAttribute('tracked-controls-webxr', {
+        autoHide: data.autoHide,
         id: data.id,
         hand: data.hand,
         index: data.controller,

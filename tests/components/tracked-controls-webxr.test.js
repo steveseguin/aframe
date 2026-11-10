@@ -50,6 +50,30 @@ suite('tracked-controls-webxr', function () {
     });
   });
 
+  suite('autoHide', function () {
+    test('updates visibility when the matched controller disconnects and reconnects', function () {
+      el.setAttribute('tracked-controls-webxr', {id: 'test', hand: 'left'});
+      assert.strictEqual(el.object3D.visible, true);
+      system.controllers = [];
+      component.updateController();
+      assert.strictEqual(el.object3D.visible, false);
+      system.controllers = [controller];
+      component.updateController();
+      assert.strictEqual(el.object3D.visible, true);
+    });
+
+    test('preserves application visibility when autoHide is false', function () {
+      el.setAttribute('tracked-controls-webxr', {autoHide: false, id: 'test', hand: 'left'});
+      el.object3D.visible = false;
+      component.updateController();
+      assert.strictEqual(el.object3D.visible, false);
+      el.object3D.visible = true;
+      system.controllers = [];
+      component.updateController();
+      assert.strictEqual(el.object3D.visible, true);
+    });
+  });
+
   suite('tick', function () {
     test('updates pose and buttons even if mesh is not defined', function () {
       el.sceneEl.frame = {
