@@ -90,7 +90,7 @@ module.exports.Component = registerComponent('look-controls', {
       this.magicWindowControls.enabled = data.magicWindowTrackingEnabled;
     }
 
-    if (oldData && !data.pointerLockEnabled !== oldData.pointerLockEnabled) {
+    if (oldData && data.pointerLockEnabled !== oldData.pointerLockEnabled) {
       this.removeEventListeners();
       this.addEventListeners();
       if (this.pointerLocked) { this.exitPointerLock(); }

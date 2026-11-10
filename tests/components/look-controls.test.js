@@ -12,6 +12,72 @@ suite('look-controls', function () {
     });
   });
 
+  suite('pointerLockEnabled updates', function () {
+    test('adds pointer lock listeners when enabled', function () {
+      var cameraEl = this.sceneEl.camera.el;
+      var lookControls = cameraEl.components['look-controls'];
+      var addEventListener = this.sinon.spy(document, 'addEventListener');
+
+      cameraEl.setAttribute('look-controls', 'pointerLockEnabled', true);
+
+      assert.ok(addEventListener.calledWith('pointerlockchange', lookControls.onPointerLockChange, false));
+      assert.ok(addEventListener.calledWith('mozpointerlockchange', lookControls.onPointerLockChange, false));
+      assert.ok(addEventListener.calledWith('pointerlockerror', lookControls.onPointerLockError, false));
+    });
+
+    test('removes pointer lock listeners when disabled', function () {
+      var cameraEl = this.sceneEl.camera.el;
+      var lookControls = cameraEl.components['look-controls'];
+      cameraEl.setAttribute('look-controls', 'pointerLockEnabled', true);
+      var removeEventListener = this.sinon.spy(document, 'removeEventListener');
+
+      cameraEl.setAttribute('look-controls', 'pointerLockEnabled', false);
+
+      assert.ok(removeEventListener.calledWith('pointerlockchange', lookControls.onPointerLockChange, false));
+      assert.ok(removeEventListener.calledWith('mozpointerlockchange', lookControls.onPointerLockChange, false));
+      assert.ok(removeEventListener.calledWith('pointerlockerror', lookControls.onPointerLockError, false));
+    });
+
+    test('exits pointer lock when disabled', function () {
+      var cameraEl = this.sceneEl.camera.el;
+      var lookControls = cameraEl.components['look-controls'];
+      cameraEl.setAttribute('look-controls', 'pointerLockEnabled', true);
+      var exitPointerLock = this.sinon.stub(lookControls, 'exitPointerLock');
+      lookControls.pointerLocked = true;
+
+      cameraEl.setAttribute('look-controls', 'pointerLockEnabled', false);
+      lookControls.pointerLocked = false;
+
+      assert.ok(exitPointerLock.calledOnce);
+    });
+
+    test('keeps pointer lock when another property changes', function () {
+      var cameraEl = this.sceneEl.camera.el;
+      var lookControls = cameraEl.components['look-controls'];
+      cameraEl.setAttribute('look-controls', 'pointerLockEnabled', true);
+      var exitPointerLock = this.sinon.stub(lookControls, 'exitPointerLock');
+      lookControls.pointerLocked = true;
+
+      cameraEl.setAttribute('look-controls', 'reverseMouseDrag', true);
+      lookControls.pointerLocked = false;
+
+      assert.notOk(exitPointerLock.called);
+    });
+
+    test('does not rebuild listeners when pointer lock stays disabled', function () {
+      var cameraEl = this.sceneEl.camera.el;
+      var lookControls = cameraEl.components['look-controls'];
+      var addEventListeners = this.sinon.spy(lookControls, 'addEventListeners');
+      var removeEventListeners = this.sinon.spy(lookControls, 'removeEventListeners');
+
+      cameraEl.setAttribute('look-controls', 'reverseMouseDrag', true);
+
+      assert.notOk(addEventListeners.called);
+      assert.notOk(removeEventListeners.called);
+    });
+  });
+
+
   suite('exit-vr', function () {
     test('reset previous HMD position upon exit-vr event', function (done) {
       var el = this.sceneEl;
