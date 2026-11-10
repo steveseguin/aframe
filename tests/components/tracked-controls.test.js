@@ -19,6 +19,17 @@ suite('tracked-controls', function () {
     assert.notOk(el.components['tracked-controls-webvr']);
   });
 
+  test('forwards autoHide changes to tracked-controls-webxr', function () {
+    el.sceneEl.hasWebXR = true;
+    el.pause();
+    el.setAttribute('tracked-controls', '');
+    assert.strictEqual(el.components['tracked-controls-webxr'].data.autoHide, true);
+    el.setAttribute('tracked-controls', 'autoHide', false);
+    assert.strictEqual(el.components['tracked-controls-webxr'].data.autoHide, false);
+    el.setAttribute('tracked-controls', 'autoHide', true);
+    assert.strictEqual(el.components['tracked-controls-webxr'].data.autoHide, true);
+  });
+
   test('set tracked-controls-webvr if WebVR API available', function () {
     el.sceneEl.hasWebXR = false;
     el.pause();
