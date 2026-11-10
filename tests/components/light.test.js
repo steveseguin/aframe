@@ -221,6 +221,34 @@ suite('light', function () {
   });
 
   suite('light target', function () {
+    ['spot', 'directional'].forEach(function (type) {
+      test(type + ': ignores a replaced target that loads last', function () {
+        var component = this.el.components.light;
+        var oldTarget = document.createElement('a-entity');
+        var newTarget = document.createElement('a-entity');
+
+        this.el.setAttribute('light', 'type', type);
+        this.el.setAttribute('light', 'target', oldTarget);
+        this.el.setAttribute('light', 'target', newTarget);
+        newTarget.emit('loaded');
+        oldTarget.emit('loaded');
+
+        assert.equal(component.light.target, newTarget.object3D);
+      });
+
+      test(type + ': ignores a cleared target when it finishes loading', function () {
+        var component = this.el.components.light;
+        var target = document.createElement('a-entity');
+
+        this.el.setAttribute('light', 'type', type);
+        this.el.setAttribute('light', 'target', target);
+        this.el.setAttribute('light', 'target', null);
+        target.emit('loaded');
+
+        assert.equal(component.light.target, component.defaultTarget);
+      });
+    });
+
     test('spotlight: set unloaded light target with selector when light is created', function (done) {
       var sceneEl = this.el.sceneEl;
       var lightEl = this.el;
