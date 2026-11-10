@@ -64,6 +64,8 @@ module.exports.Component = registerComponent('line', {
 
   remove: function () {
     this.el.removeObject3D(this.attrName, this.line);
+    this.geometry.dispose();
+    this.material.dispose();
   }
 });
 
