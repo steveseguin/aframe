@@ -98,4 +98,125 @@ suite('gltf-model', function () {
     });
     el.setAttribute('gltf-model', `url(${SRC_NO_DEFAULT_SCENE})`);
   });
+
+  suite('pending loads', function () {
+    setup(function () {
+      var requests = this.requests = [];
+      this.el.setAttribute('gltf-model', '');
+      this.component = this.el.components['gltf-model'];
+      this.sinon.stub(this.component.loader, 'load').callsFake(function (src, onLoad, onProgress, onError) {
+        requests.push({src: src, onLoad: onLoad, onError: onError});
+      });
+      this.loaded = this.sinon.spy();
+      this.failed = this.sinon.spy();
+      this.el.addEventListener('model-loaded', this.loaded);
+      this.el.addEventListener('model-error', this.failed);
+    });
+
+    test('keeps the newest model when requests complete in reverse order', function () {
+      var self = this;
+      var scene = new THREE.Object3D();
+      var animations = [];
+      this.el.setAttribute('gltf-model', SRC);
+      return this.component.ready.then(function () {
+        self.el.setAttribute('gltf-model', SRC_NO_DEFAULT_SCENE);
+        return self.component.ready;
+      }).then(function () {
+        assert.equal(self.requests.length, 2);
+        self.requests[1].onLoad({scenes: [scene], animations: animations});
+        self.requests[0].onLoad({scene: new THREE.Object3D(), animations: []});
+        assert.strictEqual(self.component.model, scene);
+        assert.strictEqual(self.el.getObject3D('mesh'), scene);
+        assert.strictEqual(scene.animations, animations);
+        assert.equal(self.loaded.callCount, 1);
+        assert.strictEqual(self.loaded.firstCall.args[0].detail.model, scene);
+      });
+    });
+
+    test('ignores an older request even when the newest request uses the same URL', function () {
+      var self = this;
+      var scene = new THREE.Object3D();
+      this.el.setAttribute('gltf-model', SRC);
+      return this.component.ready.then(function () {
+        self.el.setAttribute('gltf-model', SRC_NO_DEFAULT_SCENE);
+        return self.component.ready;
+      }).then(function () {
+        self.el.setAttribute('gltf-model', SRC);
+        return self.component.ready;
+      }).then(function () {
+        assert.equal(self.requests.length, 3);
+        self.requests[2].onLoad({scene: scene, animations: []});
+        self.requests[0].onLoad({scene: new THREE.Object3D(), animations: []});
+        self.requests[1].onLoad({scene: new THREE.Object3D(), animations: []});
+        assert.strictEqual(self.el.getObject3D('mesh'), scene);
+        assert.equal(self.loaded.callCount, 1);
+      });
+    });
+
+    test('ignores success and errors after removal', function () {
+      var self = this;
+      this.el.setAttribute('gltf-model', SRC);
+      return this.component.ready.then(function () {
+        self.el.removeAttribute('gltf-model');
+        self.requests[0].onLoad({scene: new THREE.Object3D(), animations: []});
+        self.requests[0].onError(new Error('stale failure'));
+        assert.notOk(self.el.getObject3D('mesh'));
+        assert.equal(self.loaded.callCount, 0);
+        assert.equal(self.failed.callCount, 0);
+      });
+    });
+
+    test('only starts the latest request after decoder readiness', function () {
+      var self = this;
+      var resolveReady;
+      this.component.ready = new Promise(function (resolve) { resolveReady = resolve; });
+      this.el.setAttribute('gltf-model', SRC);
+      this.el.setAttribute('gltf-model', SRC_NO_DEFAULT_SCENE);
+      resolveReady();
+      return this.component.ready.then(function () {
+        assert.equal(self.requests.length, 1);
+        assert.equal(self.requests[0].src, SRC_NO_DEFAULT_SCENE);
+      });
+    });
+
+    test('does not start a removed request after decoder readiness', function () {
+      var self = this;
+      var resolveReady;
+      this.component.ready = new Promise(function (resolve) { resolveReady = resolve; });
+      this.el.setAttribute('gltf-model', SRC);
+      this.el.removeAttribute('gltf-model');
+      resolveReady();
+      return this.component.ready.then(function () {
+        assert.equal(self.requests.length, 0);
+      });
+    });
+
+    test('ignores stale errors but reports the current error', function () {
+      var self = this;
+      this.el.setAttribute('gltf-model', SRC);
+      return this.component.ready.then(function () {
+        self.el.setAttribute('gltf-model', SRC_NO_DEFAULT_SCENE);
+        return self.component.ready;
+      }).then(function () {
+        self.requests[0].onError(new Error('stale failure'));
+        assert.equal(self.failed.callCount, 0);
+        self.requests[1].onError(new Error('current failure'));
+        assert.equal(self.failed.callCount, 1);
+        assert.equal(self.failed.firstCall.args[0].detail.src, SRC_NO_DEFAULT_SCENE);
+        assert.equal(self.failed.firstCall.args[0].detail.format, 'gltf');
+      });
+    });
+
+    test('invalidates a pending load when the source is cleared', function () {
+      var self = this;
+      this.el.setAttribute('gltf-model', SRC);
+      return this.component.ready.then(function () {
+        self.el.setAttribute('gltf-model', '');
+        self.requests[0].onLoad({scene: new THREE.Object3D(), animations: []});
+        assert.notOk(self.el.getObject3D('mesh'));
+        assert.equal(self.loaded.callCount, 0);
+      });
+    });
+  });
+
 });
