@@ -37,6 +37,7 @@ function validateCubemapSrc (src, cb) {
   var aCubemap;
   var cubemapSrcRegex = '';
   var i;
+  var numLoaded = 0;
   var urls;
   var validatedUrls = [];
 
@@ -48,15 +49,18 @@ function validateCubemapSrc (src, cb) {
 
   // `src` is a comma-separated list of URLs.
   // In this case, re-use validateSrc for each side of the cube.
-  function isImageCb (url) {
-    validatedUrls.push(url);
-    if (validatedUrls.length === 6) {
-      cb(validatedUrls);
-    }
+  function createImageCb (index) {
+    return function isImageCb (url) {
+      validatedUrls[index] = url;
+      numLoaded++;
+      if (numLoaded === 6) {
+        cb(validatedUrls);
+      }
+    };
   }
   if (urls) {
     for (i = 1; i < 7; i++) {
-      validateSrc(parseUrl(urls[i]), isImageCb);
+      validateSrc(parseUrl(urls[i]), createImageCb(i - 1));
     }
     return;
   }
