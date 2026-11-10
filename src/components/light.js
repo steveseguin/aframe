@@ -368,6 +368,8 @@ module.exports.Component = registerComponent('light', {
   },
 
   onSetTarget: function (targetEl, light) {
+    // A previous target may finish loading after it has been replaced or cleared.
+    if (targetEl !== this.data.target) { return; }
     light.target = targetEl.object3D;
   },
 
