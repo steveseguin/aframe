@@ -14,6 +14,7 @@ module.exports.Component = registerComponent('obj-model', {
     var self = this;
 
     this.model = null;
+    this.loadRequest = null;
     this.objLoader = new THREE.OBJLoader();
     this.mtlLoader = new THREE.MTLLoader(this.objLoader.manager);
     // Allow cross-origin images to be loaded.
@@ -28,12 +29,16 @@ module.exports.Component = registerComponent('obj-model', {
 
   update: function () {
     var data = this.data;
-    if (!data.obj) { return; }
+    if (!data.obj) {
+      this.loadRequest = null;
+      return;
+    }
     this.resetMesh();
     this.loadObj(data.obj, data.mtl);
   },
 
   remove: function () {
+    this.loadRequest = null;
     if (!this.model) { return; }
     this.resetMesh();
   },
@@ -48,6 +53,8 @@ module.exports.Component = registerComponent('obj-model', {
     var mtlLoader = this.mtlLoader;
     var objLoader = this.objLoader;
     var rendererSystem = this.el.sceneEl.systems.renderer;
+    // A unique token also distinguishes repeated loads of the same URL.
+    var request = this.loadRequest = {};
     var BASE_PATH = mtlUrl.substr(0, mtlUrl.lastIndexOf('/') + 1);
 
     if (mtlUrl) {
@@ -57,9 +64,11 @@ module.exports.Component = registerComponent('obj-model', {
       }
       mtlLoader.setResourcePath(BASE_PATH);
       mtlLoader.load(mtlUrl, function (materials) {
+        if (self.loadRequest !== request) { return; }
         materials.preload();
         objLoader.setMaterials(materials);
         objLoader.load(objUrl, function (objModel) {
+          if (self.loadRequest !== request) { return; }
           self.model = objModel;
           self.model.traverse(function (object) {
             if (object.isMesh) {
@@ -77,6 +86,7 @@ module.exports.Component = registerComponent('obj-model', {
 
     // .OBJ only.
     objLoader.load(objUrl, function loadObjOnly (objModel) {
+      if (self.loadRequest !== request) { return; }
       self.model = objModel;
       self.applyMaterial();
       el.setObject3D('mesh', objModel);
