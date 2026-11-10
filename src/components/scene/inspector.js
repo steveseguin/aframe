@@ -45,10 +45,8 @@ module.exports.Component = registerComponent('inspector', {
   },
 
   initOverlay: function () {
-    var dotsHTML = '<span class="dots"><span>.</span><span>.</span><span>.</span></span>';
     this.loadingMessageEl = document.createElement('div');
     this.loadingMessageEl.classList.add('a-inspector-loader');
-    this.loadingMessageEl.innerHTML = LOADING_MESSAGE + dotsHTML;
   },
 
   remove: function () {
@@ -65,6 +63,8 @@ module.exports.Component = registerComponent('inspector', {
   },
 
   showLoader: function () {
+    var dotsHTML = '<span class="dots"><span>.</span><span>.</span><span>.</span></span>';
+    this.loadingMessageEl.innerHTML = LOADING_MESSAGE + dotsHTML;
     document.body.appendChild(this.loadingMessageEl);
   },
 
@@ -84,10 +84,13 @@ module.exports.Component = registerComponent('inspector', {
     var script;
 
     // Already injected. Open.
-    if (AFRAME.INSPECTOR || AFRAME.inspectorInjected) {
+    if (AFRAME.INSPECTOR) {
       AFRAME.INSPECTOR.open(focusEl);
       return;
     }
+
+    // A script is already loading. Wait for its load or error callback.
+    if (AFRAME.inspectorInjected) { return; }
 
     this.showLoader();
 
@@ -102,6 +105,8 @@ module.exports.Component = registerComponent('inspector', {
       self.removeEventListeners();
     };
     script.onerror = function () {
+      AFRAME.inspectorInjected = false;
+      if (script.parentNode) { script.parentNode.removeChild(script); }
       self.loadingMessageEl.innerHTML = LOADING_ERROR_MESSAGE;
     };
     document.head.appendChild(script);
