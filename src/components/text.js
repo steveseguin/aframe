@@ -89,6 +89,7 @@ module.exports.Component = registerComponent('text', {
   },
 
   init: function () {
+    this.fontRequestId = 0;
     this.shaderData = {};
     this.geometry = createTextGeometry();
     this.createOrUpdateMaterial();
@@ -126,6 +127,7 @@ module.exports.Component = registerComponent('text', {
    * Clean up geometry, material, texture, mesh, objects.
    */
   remove: function () {
+    this.fontRequestId++;
     this.geometry.dispose();
     this.geometry = null;
     this.el.removeObject3D(this.attrName);
@@ -192,6 +194,7 @@ module.exports.Component = registerComponent('text', {
     var data = this.data;
     var el = this.el;
     var fontSrc;
+    var fontRequestId = ++this.fontRequestId;
     var geometry = this.geometry;
     var self = this;
 
@@ -206,6 +209,9 @@ module.exports.Component = registerComponent('text', {
       return loadFont(fontSrc, data.yOffset);
     }).then(function setFont (font) {
       var fontImgSrc;
+
+      // Ignore an obsolete request after a font change or component removal.
+      if (fontRequestId !== self.fontRequestId) { return; }
 
       if (font.pages.length !== 1) {
         throw new Error('Currently only single-page bitmap fonts are supported.');
@@ -222,6 +228,7 @@ module.exports.Component = registerComponent('text', {
       }).then(function (image) {
         // Make mesh visible and apply font image as texture.
         var texture = self.texture;
+        if (fontRequestId !== self.fontRequestId) { return; }
         // The component may have been removed at this point and texture will
         // be null. This happens mainly while executing the tests,
         // in this case we just return.
