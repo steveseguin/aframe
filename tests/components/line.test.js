@@ -106,4 +106,29 @@ suite('line', function () {
       assert.equal(positionArray[5], 6);
     });
   });
+
+  suite('remove', function () {
+    test('disposes owned geometry', function () {
+      var disposeSpy = this.sinon.spy(component.geometry, 'dispose');
+      el.removeAttribute('line');
+      assert.ok(disposeSpy.calledOnce);
+    });
+
+    test('disposes owned material', function () {
+      var disposeSpy = this.sinon.spy(component.material, 'dispose');
+      el.removeAttribute('line');
+      assert.ok(disposeSpy.calledOnce);
+    });
+
+    test('preserves resources of another line instance', function () {
+      var geometry = componentSuffix.geometry;
+      var material = componentSuffix.material;
+      var geometryDisposeSpy = this.sinon.spy(geometry, 'dispose');
+      var materialDisposeSpy = this.sinon.spy(material, 'dispose');
+      el.removeAttribute('line');
+      assert.notOk(geometryDisposeSpy.called);
+      assert.notOk(materialDisposeSpy.called);
+      assert.equal(el.getObject3D('line__suffix'), componentSuffix.line);
+    });
+  });
 });
