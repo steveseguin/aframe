@@ -23,9 +23,26 @@ registerSystem('obb-collider', {
   removeCollider: function (colliderEl) {
     var colliderEls = this.colliderEls;
     var elIndex = colliderEls.indexOf(colliderEl);
+    var collisions = this.collisions;
+    var endedCollisions = [];
+    var i;
     colliderEl.components['obb-collider'].hideCollider();
     if (elIndex > -1) { colliderEls.splice(elIndex, 1); }
     if (colliderEls.length === 0) { this.tick = undefined; }
+
+    // Remove contacts before events can remove another collider.
+    this.collisions = [];
+    for (i = 0; i < collisions.length; i++) {
+      if (collisions[i].componentA.el === colliderEl ||
+          collisions[i].componentB.el === colliderEl) {
+        endedCollisions.push(collisions[i]);
+      } else {
+        this.collisions.push(collisions[i]);
+      }
+    }
+    for (i = 0; i < endedCollisions.length; i++) {
+      this.emitCollisionEnded(endedCollisions[i]);
+    }
   },
 
   registerCollision: function (componentA, componentB) {
@@ -66,27 +83,33 @@ registerSystem('obb-collider', {
   clearCollisions: function () {
     var collisions = this.collisions;
     var detectedCollisions = [];
-    var componentA;
-    var componentB;
-    var collisionMeshA;
-    var collisionMeshB;
-    for (var i = 0; i < collisions.length; i++) {
+    var endedCollisions = [];
+    var i;
+    for (i = 0; i < collisions.length; i++) {
       if (!collisions[i].detected) {
-        componentA = collisions[i].componentA;
-        componentB = collisions[i].componentB;
-        collisionMeshA = componentA.renderColliderMesh;
-        collisionMeshB = componentB.renderColliderMesh;
-
-        if (collisionMeshA) { collisionMeshA.material.color.set(0x00ff00); }
-        componentA.el.emit('obbcollisionended', {trackedObject3D: this.trackedObject3D, withEl: componentB.el});
-
-        if (collisionMeshB) { collisionMeshB.material.color.set(0x00ff00); }
-        componentB.el.emit('obbcollisionended', {trackedObject3D: this.trackedObject3D, withEl: componentA.el});
+        endedCollisions.push(collisions[i]);
       } else {
         detectedCollisions.push(collisions[i]);
       }
     }
+    // Publish the remaining contacts before events can remove another collider.
     this.collisions = detectedCollisions;
+    for (i = 0; i < endedCollisions.length; i++) {
+      this.emitCollisionEnded(endedCollisions[i]);
+    }
+  },
+
+  emitCollisionEnded: function (collision) {
+    var componentA = collision.componentA;
+    var componentB = collision.componentB;
+    var collisionMeshA = componentA.renderColliderMesh;
+    var collisionMeshB = componentB.renderColliderMesh;
+
+    if (collisionMeshA) { collisionMeshA.material.color.set(0x00ff00); }
+    componentA.el.emit('obbcollisionended', {trackedObject3D: this.trackedObject3D, withEl: componentB.el});
+
+    if (collisionMeshB) { collisionMeshB.material.color.set(0x00ff00); }
+    componentB.el.emit('obbcollisionended', {trackedObject3D: this.trackedObject3D, withEl: componentA.el});
   },
 
   detectCollisions: function () {
