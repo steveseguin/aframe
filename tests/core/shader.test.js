@@ -224,4 +224,87 @@ suite('shader data binding', function () {
     assert.notOk(instance.attributes['vec2Neither']);
     assert.notOk(instance.uniforms['vec2Neither']);
   });
+
+  test('clearing a loaded map also clears its uniform', function () {
+    const instance = new shader();
+    const texture = new THREE.Texture();
+    const loadTexture = this.sinon.stub(el.sceneEl.systems.material, 'loadTexture');
+    instance.el = el;
+    instance.init({});
+    instance.update({src: 'first.png'});
+    loadTexture.firstCall.args[2](texture);
+    assert.strictEqual(instance.material.uniforms.src.value, texture);
+
+    instance.update({src: ''});
+
+    assert.isNull(instance.material._texture_src);
+    assert.isNull(instance.material.uniforms.src.value);
+    assert.isTrue(instance.uniforms.src.needsUpdate);
+  });
+
+  test('clearing a map with a replacement pending cannot retain the old texture', function () {
+    const instance = new shader();
+    const loadTexture = this.sinon.stub(el.sceneEl.systems.material, 'loadTexture');
+    instance.el = el;
+    instance.init({});
+    instance.update({src: 'first.png'});
+    loadTexture.firstCall.args[2](new THREE.Texture());
+    instance.update({src: 'second.png'});
+    instance.update({src: ''});
+
+    assert.isNull(instance.uniforms.src.value);
+    loadTexture.secondCall.args[2](new THREE.Texture());
+    assert.isNull(instance.material._texture_src);
+    assert.isNull(instance.uniforms.src.value);
+  });
+
+  test('clearing one map uniform preserves another loaded map', function () {
+    const instance = new shader();
+    const otherTexture = new THREE.Texture();
+    const loadTexture = this.sinon.stub(el.sceneEl.systems.material, 'loadTexture');
+    instance.el = el;
+    instance.init({});
+    instance.update({src: 'first.png', otherMap: 'other.png'});
+    loadTexture.firstCall.args[2](new THREE.Texture());
+    loadTexture.secondCall.args[2](otherTexture);
+
+    instance.update({src: ''});
+
+    assert.isNull(instance.uniforms.src.value);
+    assert.strictEqual(instance.uniforms.otherMap.value, otherTexture);
+  });
+
+  test('clearing then restoring a map accepts the new texture', function () {
+    const instance = new shader();
+    const replacement = new THREE.Texture();
+    const loadTexture = this.sinon.stub(el.sceneEl.systems.material, 'loadTexture');
+    instance.el = el;
+    instance.init({});
+    instance.update({src: 'first.png'});
+    loadTexture.firstCall.args[2](new THREE.Texture());
+    instance.update({src: ''});
+    assert.isNull(instance.uniforms.src.value);
+
+    instance.update({src: 'second.png'});
+    loadTexture.secondCall.args[2](replacement);
+
+    assert.strictEqual(instance.uniforms.src.value, replacement);
+    assert.strictEqual(instance.material._texture_src, replacement);
+  });
+
+  test('repeated null clearing invalidates a new pending map', function () {
+    const instance = new shader();
+    const loadTexture = this.sinon.stub(el.sceneEl.systems.material, 'loadTexture');
+    instance.el = el;
+    instance.init({});
+    instance.update({src: null});
+    instance.update({src: 'pending.png'});
+
+    instance.update({src: null});
+    loadTexture.firstCall.args[2](new THREE.Texture());
+
+    assert.isNull(instance.material._texture_src);
+    assert.isNull(instance.uniforms.src.value);
+    assert.notProperty(instance.materialSrcs, '_texture_src');
+  });
 });

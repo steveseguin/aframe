@@ -102,7 +102,7 @@ Shader.prototype = {
 
       if (schema[key].type === 'map') {
         // If data unchanged, get out early.
-        if (!variables[key] || variables[key].value === data[key]) { continue; }
+        if (!variables[key] || (data[key] && variables[key].value === data[key])) { continue; }
 
         // Special handling is needed for textures.
         materialKey = '_texture_' + key;
@@ -112,6 +112,11 @@ Shader.prototype = {
 
         // Kick off the texture update now that handler is added.
         utils.material.updateMapMaterialFromData(materialKey, key, this, data);
+        // Clearing a map does not emit materialtextureloaded.
+        if (!data[key]) {
+          variables[key].value = null;
+          variables[key].needsUpdate = true;
+        }
         continue;
       }
       variables[key].value = this.parseValue(schema[key].type, data[key]);
