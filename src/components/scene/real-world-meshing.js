@@ -129,7 +129,7 @@ module.exports.Component = register('real-world-meshing', {
     var newMeshEntities = [];
     for (var i = 0; i < meshEntities.length; i++) {
       if (!meshEntities[i].present) {
-        this.el.removeChild(meshEntities[i]);
+        this.el.removeChild(meshEntities[i].el);
       } else {
         newMeshEntities.push(meshEntities[i]);
       }
